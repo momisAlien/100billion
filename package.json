@@ -1,0 +1,13 @@
+{
+  "name": "maison-baccarat-room",
+  "version": "2.0.0",
+  "private": true,
+  "description": "One shared baccarat practice table for three friends",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "dev": "node server.cjs",
+    "start": "node server.cjs",
+    "build": "node scripts/build.cjs",
+    "test": "node test.cjs && node director.test.cjs && node --test tests/*.test.cjs"
+  }
+}

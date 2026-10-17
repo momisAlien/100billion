@@ -1,0 +1,58 @@
+/* Keep the upper dealer stage clear; action graphics live on the felt below. */
+.scene{height:650px;background:#113a2c url('assets/dealer-idle.webp') center top/100% auto no-repeat;isolation:isolate}
+.scene:before{z-index:1;pointer-events:none;background:linear-gradient(0deg,#06271ef2 0%,#0a3225b0 23%,transparent 55%,#0004 100%)}
+.dealer-stage{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.dealer-frame{position:absolute;top:0;left:0;width:100%;height:auto;opacity:0;transition:opacity 240ms ease;will-change:opacity;mask-image:linear-gradient(#000 75%,transparent 100%)}
+.dealer-frame.visible{opacity:1}
+.scene-top,.dealer-caption,.felt,.scene-bottom{z-index:3}
+.dealer-caption{top:auto;bottom:302px;max-width:90%;white-space:normal;text-align:center;min-width:210px;font-size:11px;backdrop-filter:blur(8px);transition:background .2s}
+.felt{bottom:44px}
+.table-mark{margin-bottom:12px}
+.hands{gap:45px;margin-bottom:20px}
+.hand{width:185px;border-radius:10px;transition:filter .4s,background .4s}
+.cards{height:84px;perspective:900px}
+.card-slot{width:56px;height:82px}
+.playing-card{position:relative;width:56px;height:82px;flex-shrink:0;perspective:900px;z-index:5}
+.card-turn{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+.playing-card.revealed .card-turn{transform:rotateY(180deg)}
+.card-back,.card-face{position:absolute;inset:0;border-radius:5px;backface-visibility:hidden;box-shadow:1px 5px 9px #0005}
+.card-back{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#d8ba84;background:repeating-linear-gradient(45deg,#6a3038 0px,#6a3038 2px,#733840 2px,#733840 4px);border:3px solid #e1d3bc;outline:1px solid #b39673;outline-offset:-6px}
+.card-back>span{font:26px Georgia,serif}.card-back small{font:5px Georgia,serif;letter-spacing:1px;margin-top:4px}
+.card-face{transform:rotateY(180deg);background:linear-gradient(115deg,#fffdf4,#e9e3d6);color:#233128;padding:6px;font:17px Georgia,serif}
+.card-face.red{color:#ae3e44}.card-face>b{font-weight:500}.card-face>small{display:block;font-size:12px}.card-face .suit{position:absolute;top:29px;left:18px;font-size:29px}.card-face .corner{position:absolute;bottom:5px;right:5px;transform:rotate(180deg);font-size:13px}.corner small{display:block;font-size:9px}
+.playing-card.arriving{animation:card-arrive .46s cubic-bezier(.15,.7,.25,1) both}
+.playing-card.collecting{animation:card-collect .42s ease-in var(--collect-delay) both}
+.shoe-prop{position:absolute;right:5%;bottom:286px;width:60px;height:45px;z-index:2;transform:rotate(-13deg) skewY(8deg);border:1px solid #a17e4e;border-radius:4px;background:linear-gradient(135deg,#22231e,#101711);box-shadow:4px 9px 0 #0a130e,8px 15px 18px #0005;text-align:center;color:#d5b789;transition:filter .2s}
+.shoe-prop>div{position:absolute;left:7px;top:-3px;width:38px;height:42px;border:2px solid #ddd2be;border-radius:3px;background:repeating-linear-gradient(45deg,#61303a 0 2px,#79424b 2px 4px);font:24px Georgia,serif;box-shadow:1px 2px 0 #ad9d85,2px 4px 0 #736d60}
+.shoe-prop small{position:absolute;bottom:-10px;left:15px;font:5px Georgia,serif;letter-spacing:1px}
+.shoe-prop.drawing{filter:drop-shadow(0 0 8px #dcc389aa)}
+.shoe-prop.drawing>div{animation:shoe-draw .4s ease-out}
+.phase-indicator{position:absolute;top:62px;left:25px;z-index:4;display:flex;gap:7px;align-items:center;color:#d4c39e;font-size:9px;letter-spacing:.5px;background:#0b181bb0;padding:6px 9px;border-radius:15px;backdrop-filter:blur(5px)}
+.phase-indicator i{width:4px;height:4px;background:#cbb17a}
+.scene[aria-busy=true] .phase-indicator i{animation:phase-glow .7s ease-in-out infinite alternate}
+.scene[aria-busy=true] .zone:disabled{opacity:.8;cursor:wait}
+.result-banner{position:absolute;left:50%;bottom:289px;transform:translate(-50%,10px) scale(.95);z-index:4;pointer-events:none;opacity:0;min-width:240px;text-align:center;color:#e4cf99;padding:13px 25px;border:1px solid #d8b87577;border-radius:8px;background:linear-gradient(110deg,#172b25ee,#263e2aee,#15251dee);box-shadow:0 8px 32px #0005;backdrop-filter:blur(8px);transition:opacity .35s,transform .35s}
+.result-banner.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.result-banner small{display:block;font:7px sans-serif;letter-spacing:3px;margin-bottom:6px}.result-banner strong{display:block;font:23px Georgia,serif;letter-spacing:2px}.result-banner>span{display:block;font:10px sans-serif;margin-top:8px;letter-spacing:1px}
+.scene[data-result=P] .result-banner{color:#bbdaef;border-color:#8dbbda99}.scene[data-result=B] .result-banner{color:#f0bfb2;border-color:#d2998899}
+.scene[data-result] .dealer-caption{bottom:406px;font-size:10px}
+.winning-hand{filter:drop-shadow(0 0 10px #dec58c50);background:#dec58c0c}
+.winning-hand .hand-title b{background:#d5bc81;color:#132c20}
+.flying-chip{position:fixed;z-index:1000;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;border:4px dashed #efe2bd;outline:1px solid #dac08c;background:#8c7547;color:#fff1d2;box-shadow:0 4px 9px #0007,inset 0 0 0 1px #ead2a066;font:bold 9px Georgia,serif;pointer-events:none}
+.payout-chip{background:#c2a15f;border-color:#fff0bf;color:#2a3120}
+.chip-picked{animation:chip-pick .38s ease-out}.bet-landed{animation:bet-land .5s ease-out}.score-pop{animation:score-pop .4s ease-out}.paid{animation:wallet-paid .8s ease-out}.shake{animation:shake .3s ease-in-out}
+.fast .dealer-frame{transition-duration:120ms}.fast .card-turn{transition-duration:.2s}.fast .playing-card.arriving{animation-duration:.22s}.fast .playing-card.collecting{animation-duration:.2s;animation-delay:0ms}
+@keyframes card-arrive{from{transform:translate(var(--deal-x),var(--deal-y)) rotate(-18deg) scale(.7);opacity:0}15%{opacity:1}to{transform:none;opacity:1}}
+@keyframes card-collect{to{transform:translate(60px,-130px) scale(.6) rotate(12deg);opacity:0}}
+@keyframes shoe-draw{50%{transform:translate(-12px,6px) rotate(-5deg)}}
+@keyframes chip-pick{40%{transform:translateY(-10px) rotate(-8deg)}100%{transform:translateY(-3px)}}
+@keyframes bet-land{35%{box-shadow:0 0 0 5px #e6c78626,0 0 22px #e6c78640}100%{box-shadow:none}}
+@keyframes score-pop{40%{transform:scale(1.3);background:#d7bf88;color:#183321}}
+@keyframes wallet-paid{30%{border-color:#d7bb77;box-shadow:0 0 25px #d7bb7733}}
+@keyframes shake{25%,75%{transform:translateX(-4px)}50%{transform:translateX(4px)}}
+@keyframes phase-glow{to{opacity:.3;box-shadow:0 0 6px #d8bd80}}
+@media(min-width:1500px){.scene{height:710px}}
+@media(max-width:1150px) and (min-width:901px){.scene{height:620px}.dealer-stage{height:360px}.dealer-frame{height:100%;object-fit:cover;object-position:center top}}
+@media(max-width:900px){.scene{height:670px}.dealer-caption{top:auto}}
+@media(max-width:560px){.scene{height:620px;background-size:auto 380px}.dealer-stage{height:380px}.dealer-frame{height:100%;width:100%;object-fit:cover;object-position:center top;mask-image:linear-gradient(#000 82%,transparent)}.dealer-caption{top:auto;bottom:286px;font-size:9px;min-width:190px}.phase-indicator{top:60px;left:16px;font-size:8px}.hands{gap:16px}.hand{width:140px}.playing-card,.card-slot{width:43px;height:66px}.cards{height:68px}.card-face{font-size:15px;padding:4px}.card-face .suit{font-size:23px;left:13px;top:25px}.card-face .corner{font-size:10px;bottom:3px;right:3px}.card-face>small{font-size:10px}.card-back>span{font-size:22px}.shoe-prop{bottom:258px;right:6%;width:42px;height:31px}.shoe-prop>div{width:29px;height:32px;left:4px;font-size:18px}.shoe-prop small{left:6px}.result-banner{bottom:268px;min-width:215px;padding:12px 20px}.result-banner strong{font-size:19px}.scene[data-result] .dealer-caption{bottom:370px}.felt{bottom:43px}.table-mark{margin-bottom:16px}}
+@media(prefers-reduced-motion:reduce){.dealer-frame,.card-turn,.result-banner{transition:none!important}.playing-card,.chip,.zone,.shoe-prop>div,.phase-indicator i{animation:none!important}}
