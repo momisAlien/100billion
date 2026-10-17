@@ -1,7 +1,9 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),http=require('node:http'),{randomUUID}=require('node:crypto');
-const store=require('../lib/store.cjs');const rooms=new Map();store.getStore=(key='lobby')=>{if(!rooms.has(key))rooms.set(key,new store.MemoryStore());return rooms.get(key)};
+const store=require('../lib/store.cjs');const {PGlite}=require('@electric-sql/pglite');const {NeonStore,SETUP}=require('../lib/neon.cjs');const pg=new PGlite();const database={query:async(q,p)=>(await pg.query(q,p)).rows};
+const rooms=new Map();store.getStore=(key='lobby')=>{if(!rooms.has(key))rooms.set(key,new NeonStore(database,key));return rooms.get(key)};
 const handler=require('../api/room.js');
 test('HTTP random rooms: create retry, keys, isolation, host transfer, capacity, SSE and shared settlement',async()=>{
+ await pg.transaction(async tx=>{for(const q of SETUP)await tx.query(q)});
  const server=http.createServer(handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
  const clients=Array.from({length:4},()=>({cookie:''}));
  const call=async(c,data)=>{const res=await fetch(base+'/api/room',{method:data?'POST':'GET',headers:{Cookie:c.cookie,...(data?{'Content-Type':'application/json',Origin:base}:{})},body:data?JSON.stringify(data):undefined});for(const cookie of res.headers.getSetCookie()){const pair=cookie.split(';')[0],key=pair.split('=')[0];c.cookie=c.cookie.split('; ').filter(x=>x&&!x.startsWith(key+'=')).concat(pair).join('; ')}return {status:res.status,data:await res.json()}};
@@ -31,5 +33,5 @@ test('HTTP random rooms: create retry, keys, isolation, host transfer, capacity,
   const game=require('../dist/game.js');
   for(let i=0;i<3;i++){const d=results[i].data;assert.equal(d.round.id,done.round.id);assert.equal(d.round.winner,done.round.winner);assert.deepEqual(d.round.steps,done.round.steps);const b={P:0,B:0,T:0};b[['P','B','T'][i]]=100;assert.equal(d.players.find(p=>p.id===d.me).balance,10000-100+Math.round(game.returns(b,d.round.winner)))}
   const separate=await call(clients[3],{type:'create',requestId:randomUUID(),name:'Other host'});assert.equal(separate.status,200);assert.notEqual(separate.data.roomCode,code);assert.equal(separate.data.players.length,1);assert.equal(separate.data.history.length,0);assert.equal((await call(clients[0])).data.players.length,3);
- }finally{server.closeAllConnections();await new Promise(r=>server.close(r))}
+ }finally{server.closeAllConnections();await new Promise(r=>server.close(r));await pg.close()}
 });

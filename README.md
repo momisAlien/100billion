@@ -4,42 +4,46 @@
 
 ## 로컬 실행
 
-Node.js 22 이상에서 이 폴더를 열고 실행합니다. 별도 npm 패키지 설치는 필요하지 않습니다.
+Node.js 22 이상에서 이 폴더를 열고 실행합니다. 처음에는 `npm install`로 의존성을 설치하세요.
 
 ```powershell
+npm install
 npm run dev
 ```
 
 - 주소: `http://127.0.0.1:4181`
 - 닉네임을 입력하고 **새 방 만들고 입장하기**를 누릅니다. 발급된 12자리 키를 친구에게 공유하면 친구는 **입장 키로 참여하기**로 합류합니다.
-- 로컬에서는 `.local/rooms/<입장 키>.json`에 공용 방을 저장합니다. 실제 배포는 반드시 Redis를 사용합니다.
+- 로컬에서는 `.local/rooms/<입장 키>.json`에 공용 방을 저장합니다. 실제 배포는 Neon 데이터베이스를 사용합니다.
 - 같은 브라우저의 여러 탭은 같은 참가자입니다. 3인 테스트는 서로 다른 브라우저 프로필/시크릿 세션을 사용하세요.
-- `.env.example`을 `.env`로 복사하면 Redis 연결과 포트를 변경할 수 있습니다. 비밀 값은 Git에 넣지 마세요.
+- `.env.example`을 `.env`로 복사하면 데이터베이스 연결과 포트를 변경할 수 있습니다. 비밀 값은 Git에 넣지 마세요.
 
 ## Vercel 배포
 
 이 폴더 자체가 배포 프로젝트 루트입니다. `casino` 전체를 저장소로 사용할 경우 Vercel Root Directory를 `maison`으로 지정합니다. `maison-vercel.zip`을 풀어 독립 저장소로 만드는 경우 압축을 푼 폴더가 루트입니다. 기존 Sites 배포와는 별개의 Vercel 프로젝트입니다.
 
 1. Vercel 프로젝트에 이 소스를 연결합니다. Framework Preset은 **Other**, Build Command는 `npm run build`, Output Directory는 `dist`입니다. 설정은 `vercel.json`에도 있습니다.
-2. Upstash Redis 데이터베이스를 연결합니다. 다음 환경변수를 Vercel 프로젝트 설정에 입력하세요.
+2. [Vercel Marketplace의 Neon](https://vercel.com/marketplace/neon)을 추가합니다. **Create New Neon Account** 흐름을 사용하면 Neon 사이트에 별도로 로그인할 필요 없이 Vercel에서 계정이 만들어집니다. 설치 화면의 요금제와 약관을 확인하고 데이터베이스를 생성하세요.
+3. 생성한 Neon 리소스에서 **Connect Project**로 이 게임 프로젝트를 연결합니다. **Production**을 선택하고, Custom Prefix는 비워 두세요. Preview에서도 사용할 경우 해당 환경도 연결합니다.
+4. 프로젝트 **Settings → Environment Variables**에 `DATABASE_URL`이 추가되었는지 확인합니다. 기존 방식의 `POSTGRES_URL`도 지원합니다. 연결 문자열은 서버 전용이며 GitHub나 채팅에 공개하지 마세요.
+5. **Deployments → 최신 배포 → Redeploy**를 실행합니다. Ready가 되면 게임에서 닉네임을 입력하고 **새 방 만들고 입장하기**를 누릅니다. 첫 요청에서 필요한 테이블을 자동 생성합니다. SQL을 따로 실행할 필요가 없습니다.
+6. 발급된 랜덤 입장 키와 사이트 주소를 친구에게 공유합니다.
 
-| 환경변수 | 값 |
+| 환경변수 | 설정 |
 | --- | --- |
-| `UPSTASH_REDIS_REST_URL` | Redis의 HTTPS REST endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | Redis의 쓰기 가능한 REST token |
-| `ROOM_KEY` | 선택. 기본 `maison:friends:v3` |
+| `DATABASE_URL` | Neon 연결 시 자동 등록되는 PostgreSQL 연결 문자열. 우선 사용 |
+| `POSTGRES_URL` | DATABASE_URL이 없는 경우 지원하는 대체 이름 |
+| `ROOM_KEY` | 선택. 방을 구분하는 접두사. 기본 `maison:friends:v3` |
 
-3. 환경변수를 넣은 뒤 배포합니다. CLI를 사용하는 경우 이 폴더에서 `npx vercel`, 운영 배포 시 `npx vercel --prod`를 실행합니다.
-4. 친구에게 Vercel URL과 생성된 입장 키를 알려주세요. Redis 토큰은 클라이언트 파일에 포함되지 않습니다. 입장 키는 방 참가자에게만 표시됩니다. `ROOM_CODE` 환경변수는 더 이상 필요하지 않습니다.
+`ROOM_CODE`와 Upstash 환경변수는 필요 없습니다. Neon 연결이 있으면 Neon을 우선 사용합니다. 기존 Upstash 사용자에게는 `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` 방식도 호환됩니다. 저장소를 변경하면 이전 저장소의 방은 자동 이전되지 않으므로 새 방을 만드세요.
 
-Production과 Preview를 같은 실제 방으로 연결하려면 같은 Redis와 ROOM_KEY를 사용합니다. 미리보기 테스트가 실제 방에 영향을 주지 않게 하려면 Preview에 별도 ROOM_KEY를 지정하세요.
+Preview는 별도 Neon 브랜치 또는 별도 ROOM_KEY를 사용하면 운영 게임과 분리됩니다. Custom Prefix를 지정했다면 앱이 읽는 `DATABASE_URL` 이름으로 연결 문자열을 등록하거나 접두사 없이 다시 연결해야 합니다.
 
-**현재 상태:** 로컬 빌드, 게임 엔진, HTTP 3세션, 동시성 및 화면 검증을 수행했습니다. 실제 Upstash 계정 연결 및 Vercel 운영 배포는 아직 수행하지 않았습니다. 환경변수가 없는 Vercel에서는 임시 로컬 방으로 대체하지 않고 연결 오류를 반환합니다.
+**현재 검증:** 빌드, 바카라 엔진, PostgreSQL 쿼리, 3인 HTTP 게임 흐름 및 동시성을 로컬에서 검증했습니다. PostgreSQL 테스트는 PGlite 엔진에서 실행하며, 실제 Neon 계정 연결과 Vercel 운영 환경 검증은 아직 하지 않았습니다. 운영 환경에 저장소가 없으면 임시 메모리 방으로 대체하지 않습니다.
 
 ## 방의 동작
 
 - 방장이 생성한 방마다 랜덤 12자리 키가 발급됩니다. 방당 최대 3자리이며 서로 다른 방의 카드·잔액·기록은 분리됩니다. 혼자서도 플레이 가능하며 친구는 진행 중인 테이블에 합류합니다.
-- 방장 퇴장 시 남은 참가자에게 방장 표시가 넘어갑니다. 게임은 계속됩니다. 모두 퇴장해도 기존 키로 재입장할 수 있습니다. Redis에서는 마지막 방 데이터 갱신 후 7일이 지나면 방이 만료됩니다.
+- 방장 퇴장 시 남은 참가자에게 방장 표시가 넘어갑니다. 게임은 계속됩니다. 모두 퇴장해도 기존 키로 재입장할 수 있습니다. 운영 저장소에서는 마지막 방 데이터 갱신 후 7일이 지나면 방이 만료됩니다.
 - 입장할 때 가상 $100. 칩은 $1 / $5 / $10 / $25입니다. 실제 입금·출금 기능은 없습니다.
 - 첫 베팅이 올라오면 18초 카운트다운. 입장한 전원이 **베팅 완료** 또는 **이번 판 관전**을 누르면 즉시 딜링합니다. 혼자 있으면 본인 완료만으로 시작합니다.
 - 완료 버튼 이후에는 본인 베팅을 변경할 수 없습니다. 완료하지 않아도 마감 시간에 기존 베팅으로 진행됩니다.
@@ -51,13 +55,13 @@ Production과 Preview를 같은 실제 방으로 연결하려면 같은 Redis와
 
 ## 서버와 실시간 동기화
 
-`api/room.js`는 Node.js Vercel Function입니다. POST는 입장·베팅·완료·퇴장을 처리하고 GET의 SSE 스트림은 방 상태를 전달합니다. 연결은 24초마다 정상 재연결하며, 딜링은 약 350ms, 대기/베팅은 약 1초 간격으로 서버 상태를 확인합니다. 실제 지연은 네트워크와 Redis 위치에 따라 달라집니다. SSE가 끊기면 베팅을 비활성화하고 재연결합니다.
+`api/room.js`는 Node.js Vercel Function입니다. POST는 입장·베팅·완료·퇴장을 처리하고 GET의 SSE 스트림은 방 상태를 전달합니다. 연결은 24초마다 정상 재연결하며, 딜링은 약 350ms, 대기/베팅은 약 1초 간격으로 서버 상태를 확인합니다. 실제 지연은 네트워크와 데이터베이스 위치에 따라 달라집니다. SSE가 끊기면 베팅을 비활성화하고 재연결합니다.
 
-서버가 8덱 셔플, 세 번째 카드 규칙, 마감, 당첨, 각자 정산을 결정합니다. 금액은 정수 센트로 저장합니다. 미공개 카드·셔플된 덱·세션 해시는 클라이언트에 보내지 않습니다. Redis GET + Lua compare-and-set으로 동시에 들어온 작업을 직렬화하고 요청 ID로 중복 베팅을 막습니다. 네트워크가 끊겨도 동일 요청 ID로 재시도하며, 서버 시간에 따라 복귀한 화면이 현재 라운드를 따라갑니다.
+서버가 8덱 셔플, 세 번째 카드 규칙, 마감, 당첨, 각자 정산을 결정합니다. 금액은 정수 센트로 저장합니다. 미공개 카드·셔플된 덱·세션 해시는 클라이언트에 보내지 않습니다. Neon의 조건부 INSERT/UPDATE(compare-and-set)로 동시에 들어온 작업을 직렬화하고 요청 ID로 중복 베팅을 막습니다. 네트워크가 끊겨도 동일 요청 ID로 재시도하며, 서버 시간에 따라 복귀한 화면이 현재 라운드를 따라갑니다.
 
 브라우저가 모두 떠난 동안 별도 예약 작업은 돌지 않습니다. 다음 요청에서 지난 라운드와 정산을 진행시켜 일관된 현재 상태를 복원합니다. 서버리스 함수 인스턴스의 메모리를 공용 방으로 사용하지 않습니다.
 
-SSE 요청과 Redis 명령은 사용량에 포함됩니다. 무료 요금제 내 사용을 보장하지 않으므로 실제 이용 중 각 서비스 대시보드에서 확인하세요.
+SSE 요청과 데이터베이스 사용량은 각 서비스의 사용량에 포함됩니다. 무료 요금제 내 사용을 보장하지 않으므로 실제 이용 중 각 서비스 대시보드에서 확인하세요.
 
 ## 검증
 
@@ -69,8 +73,9 @@ npm test
 - 엔진: 내추럴, 세 번째 카드 조건표, 배당, 무승부 반환, 1,000회 시뮬레이션.
 - 딜러: 늦게 로드된 이미지의 덮어쓰기 방지, 좌우 배분, 세 결과 포즈, 카드 회수, 이미지 실패 복구.
 - 공용 방: 동시 입장 3명 제한, 동시/중복 베팅, 완료 후 변경 방지, 솔로 시작, 시간 마감, 한 번만 정산, 미공개 카드 보호, 중간 합류, 재접속, 퇴장·재입장, 오래된 자리 해제.
-- HTTP: 독립된 쿠키 4개로 랜덤 키 발급 및 생성 재시도, 키 입력, 방 간 격리, 방장 퇴장, 3인 입장, 네 번째 거절, SSE, 다른 참가자의 베팅 공유, 재입장, 교차 출처 POST 거절.
+- PostgreSQL: 최초 테이블 생성, 동시 생성·갱신 충돌, 오래된 상태 덮어쓰기 방지, 방 만료·재생성, 공용 요청 횟수 제한 및 재시도.
+- HTTP (PostgreSQL 엔진 사용): 독립된 쿠키 4개로 랜덤 키 발급 및 생성 재시도, 키 입력, 방 간 격리, 방장 퇴장, 3인 입장, 네 번째 거절, SSE, 다른 참가자의 베팅 공유, 재입장, 교차 출처 POST 거절.
 
 딜러 이미지는 실제 영상이 아니라 상황별로 생성한 포즈와 전환 애니메이션입니다. 프롬프트와 파일은 `ASSETS.md`에 정리했습니다.
 
-공식 참고: [Vercel Node.js Functions](https://vercel.com/docs/functions/runtimes/node-js), [Vercel Streaming](https://vercel.com/docs/functions/streaming-functions), [Upstash REST API](https://upstash.com/docs/redis/features/restapi).
+공식 참고: [Vercel Node.js Functions](https://vercel.com/docs/functions/runtimes/node-js), [Vercel Streaming](https://vercel.com/docs/functions/streaming-functions), [Neon Vercel 연동](https://vercel.com/marketplace/neon), [Neon 공식 드라이버](https://github.com/neondatabase/serverless).
