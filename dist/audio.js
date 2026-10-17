@@ -1,6 +1,7 @@
 (() => {
 const $=s=>document.querySelector(s);
-let soundOn=false,ctx,master,musicBus,fxBus,timer,note=0;
+let soundOn=false,ctx,master,musicBus,fxBus,timer,note=0,busy=false;
+let preferred=true;try{preferred=localStorage.getItem('maison-sound')!=='off'}catch{}
 function tone(freq,dur=.25,volume=.08,type='sine',bus=fxBus,delay=0){
   if(!soundOn||!ctx||ctx.state!=='running')return;
   const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+delay;o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(bus);o.start(t);o.stop(t+dur);o.onended=()=>{o.disconnect();g.disconnect()};
@@ -34,9 +35,49 @@ function music(){
   const chords=[[130.81,164.81,196,246.94],[110,130.81,164.81,196],[87.31,110,130.81,164.81],[98,123.47,146.83,185]],c=chords[Math.floor(note/8)%4];tone(c[note%4]*(note%3===0?2:1),2.4,.065,'sine',musicBus);
   if(note%8===0){c.forEach(f=>tone(f,4,.018,'sine',musicBus));tone(c[0]/2,2.8,.07,'sine',musicBus)}note++;timer=setTimeout(music,520);
 }
-$('#sound').onclick=async()=>{
-  try{if(!ctx){ctx=new(window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.6;master.connect(ctx.destination);musicBus=ctx.createGain();musicBus.gain.value=.55;musicBus.connect(master);fxBus=ctx.createGain();fxBus.connect(master)}await ctx.resume();soundOn=!soundOn;clearTimeout(timer);master.gain.setTargetAtTime(soundOn?.6:0,ctx.currentTime,.1);$('#sound span').textContent='사운드 '+(soundOn?'ON':'OFF');$('#sound').setAttribute('aria-label',soundOn?'사운드 끄기':'사운드 켜기');$('#sound').setAttribute('aria-pressed',String(soundOn));if(soundOn){music();playEffect('select')}}catch{$('#caption').textContent='이 브라우저에서는 사운드를 사용할 수 없어요.'}
-};
-document.addEventListener('visibilitychange',()=>{if(!ctx)return;if(document.hidden){clearTimeout(timer);ctx.suspend()}else if(soundOn)ctx.resume().then(music).catch(()=>{})});
+function renderSound(){
+  const active=soundOn&&ctx?.state==='running';
+  $('#sound span').textContent=active?'사운드 ON':soundOn?'사운드 재개':'사운드 OFF';
+  $('#sound').setAttribute('aria-label',active?'사운드 끄기':'사운드 켜기');
+  $('#sound').setAttribute('aria-pressed',String(active));
+}
+async function setSound(enabled,remember=false){
+  if(busy)return;busy=true;
+  try{
+    if(enabled){
+      if(!ctx){
+        ctx=new(window.AudioContext||window.webkitAudioContext)();
+        master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);
+        musicBus=ctx.createGain();musicBus.gain.value=.85;musicBus.connect(master);
+        fxBus=ctx.createGain();fxBus.connect(master);
+        ctx.onstatechange=renderSound;
+      }
+      await ctx.resume();
+      if(ctx.state!=='running')throw new Error('Audio suspended');
+    }
+    soundOn=enabled;clearTimeout(timer);
+    if(master)master.gain.setTargetAtTime(enabled?.7:0,ctx.currentTime,.08);
+    if(remember){preferred=enabled;try{localStorage.setItem('maison-sound',enabled?'on':'off')}catch{}}
+    renderSound();
+    if(enabled){music();tone(980,.12,.12,'triangle')}
+  }catch{
+    soundOn=false;renderSound();
+    $('#sound span').textContent='눌러서 사운드 켜기';
+    $('#sound').title='브라우저의 사이트 소리 권한과 기기 음량을 확인해 주세요.';
+  }finally{busy=false}
+}
+$('#sound').onclick=()=>setSound(!(soundOn&&ctx?.state==='running'),true);
+// Start inside the user's click gesture, before the asynchronous room request.
+for(const id of ['createRoom','join'])$('#'+id).addEventListener('click',()=>{if(preferred&&!soundOn)setSound(true)});
+// A refreshed page needs a new gesture; also recover from mobile audio interruptions.
+document.addEventListener('pointerdown',e=>{
+  if(e.target.closest?.('#sound'))return;
+  if(preferred&&!$('#tableView').hidden&&(!ctx||ctx.state!=='running'))setSound(true);
+});
+document.addEventListener('visibilitychange',()=>{
+  if(!ctx)return;
+  if(document.hidden){clearTimeout(timer);ctx.suspend().catch(()=>{})}
+  else if(soundOn)ctx.resume().then(()=>{renderSound();music()}).catch(renderSound);
+});
+renderSound();
 })();
-
