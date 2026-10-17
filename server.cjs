@@ -9,4 +9,4 @@ const server=http.createServer(async(req,res)=>{
  if(!file.startsWith(root+path.sep)){res.writeHead(403);return res.end()}
  fs.readFile(file,(e,content)=>{if(e){res.writeHead(404);return res.end('Not found')}res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.webp':'image/webp'})[path.extname(file)]||'application/octet-stream');res.setHeader('Cache-Control','no-store');res.end(content)});
 });
-server.listen(port,'127.0.0.1',()=>console.log(`Local: http://127.0.0.1:${port} · local room code: ${process.env.ROOM_CODE?'configured in environment':'MAISON3'}`));
+server.listen(port,'127.0.0.1',()=>console.log(`Local: http://127.0.0.1:${port} · create a room to get an invite key`));

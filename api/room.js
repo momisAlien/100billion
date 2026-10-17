@@ -1,4 +1,4 @@
-const {randomBytes,createHash,timingSafeEqual}=require('node:crypto');
+const {randomBytes,createHash}=require('node:crypto');
 const {getStore,transact}=require('../lib/store.cjs');
 const {action,view}=require('../lib/room.cjs');
 const hash=s=>createHash('sha256').update(s).digest('hex');
@@ -19,23 +19,41 @@ module.exports=async function handler(req,res){
  let closed=false;res.on('close',()=>{closed=true});
  try{
   if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');return json(res,405,{error:'지원하지 않는 요청입니다.'})}
-  if(process.env.VERCEL&&!process.env.ROOM_CODE)return json(res,503,{error:'Vercel에 ROOM_CODE를 설정해 주세요.'});
-  const store=getStore(),who=token(req,res),url=new URL(req.url,'http://localhost');
-  const snapshot=async(input={type:'sync'})=>{const now=Date.now();const room=await transact(store,r=>action(r,who,input,now));const data={...view(room,who,now),local:!process.env.VERCEL&&!process.env.UPSTASH_REDIS_REST_URL};return data.me?data:{me:null,serverNow:now,local:data.local,occupancy:data.players.length,capacity:3}};
+  const who=token(req,res),url=new URL(req.url,'http://localhost');
+  const cookieCode=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('maison_table='))?.slice(13);
+  let code=/^[A-F0-9]{12}$/.test(cookieCode||'')?cookieCode:null;
+  const lobby=()=>({me:null,serverNow:Date.now(),capacity:3});
+  const select=key=>{const cookies=res.getHeader('Set-Cookie');res.setHeader('Set-Cookie',[...(Array.isArray(cookies)?cookies:cookies?[cookies]:[]),`maison_table=${key}; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800${process.env.VERCEL?'; Secure':''}`]);code=key};
+  const snapshot=async(input={type:'sync'},creating=false)=>{
+   if(!code)return lobby();
+   const store=getStore(code);
+   if(!creating&&!await store.read()){if(input.type==='sync')return lobby();const e=new Error('방을 찾을 수 없습니다. 친구에게 입장 키를 다시 확인해 주세요.');e.status=404;throw e}
+   const now=Date.now();const room=await transact(store,r=>{
+    if(creating){if(r.creator&&r.creator!==who){const e=new Error('방 생성이 겹쳤습니다. 다시 만들어 주세요.');e.status=409;throw e}r.creator=who}
+    action(r,who,input,now);
+    if(!r.players.some(p=>p.hash===r.host))r.host=r.players[0]?.hash||null;
+   });
+   const data=view(room,who,now);
+   return data.me?{...data,roomCode:code,hostId:room.players.find(p=>p.hash===room.host)?.id||null}:lobby();
+  };
   if(req.method==='POST'){
    const origin=req.headers.origin;if(origin){const host=req.headers['x-forwarded-host']||req.headers.host;if(new URL(origin).host!==host)return json(res,403,{error:'다른 사이트에서 보낸 요청은 허용되지 않습니다.'})}
    if(!String(req.headers['content-type']||'').startsWith('application/json'))return json(res,415,{error:'JSON 요청이 필요합니다.'});
    const input=await body(req);
-   if(input.type==='join'){
+   if(['create','join'].includes(input.type)){
+    if(!/^[a-zA-Z0-9-]{16,80}$/.test(input.requestId||''))return json(res,400,{error:'요청 식별자가 올바르지 않습니다.'});
     const address=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim();
-    if(!await store.limit(hash(address)))return json(res,429,{error:'입장 시도가 너무 많습니다. 1분 후 다시 시도해 주세요.'});
-    const expected=process.env.ROOM_CODE||'MAISON3';
-    if(typeof input.code!=='string'||!timingSafeEqual(Buffer.from(hash(input.code)),Buffer.from(hash(expected))))return json(res,403,{error:'입장 코드가 맞지 않습니다.'});
+    if(!await getStore().limit(hash(address)))return json(res,429,{error:'입장 시도가 너무 많습니다. 1분 후 다시 시도해 주세요.'});
+    const creating=input.type==='create';
+    code=creating?hash(who+':'+input.requestId).slice(0,12).toUpperCase():String(input.code||'').replace(/[\s-]/g,'').toUpperCase();
+    if(!/^[A-F0-9]{12}$/.test(code))return json(res,400,{error:'친구가 공유한 12자리 입장 키를 입력해 주세요.'});
+    const data=await snapshot({...input,type:'join'},creating);select(code);return json(res,200,data);
    }
+   if(!code&&input.type!=='leave')return json(res,401,{error:'방을 만들거나 입장한 뒤 이용해 주세요.'});
    return json(res,200,await snapshot(input));
   }
   const first=await snapshot();
-  // The lounge and private names are only visible after a successful code-protected join.
+  // Only joined members receive room keys and player information.
   if(!first.me)return json(res,200,first);
   if(url.searchParams.get('stream')!=='1')return json(res,200,first);
   res.setHeader('Content-Type','text/event-stream; charset=utf-8');res.setHeader('X-Accel-Buffering','no');res.flushHeaders?.();
