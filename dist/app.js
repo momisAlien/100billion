@@ -6,7 +6,7 @@ let snapshot=null,stream=null,online=false,pending=false,chip=100,clockOffset=0;
 let stageKey='',lastEvent='',lastRound=null,announced=null,mode='game',lesson=0;
 const faces=new Set();
 function status(text,error=false){$('#actionStatus').textContent=text;$('#actionStatus').classList.toggle('error',error)}
-function setMode(next){mode=next==='rules'?'rules':'game';window.tableSoundsEnabled=mode==='game';$('#gameMode').hidden=mode!=='game';$('#rulesMode').hidden=mode!=='rules';$$('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===mode);if(b.dataset.mode===mode)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});$('#lessonLive').hidden=!snapshot?.me;if(location.hash!=='#'+mode)history.replaceState(null,'','#'+mode)}
+function setMode(next){mode=next==='rules'?'rules':'game';window.tableSoundsEnabled=mode==='game';if(mode!=='game')window.dealerVoiceCancel?.();$('#gameMode').hidden=mode!=='game';$('#rulesMode').hidden=mode!=='rules';$$('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===mode);if(b.dataset.mode===mode)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});$('#lessonLive').hidden=!snapshot?.me;if(location.hash!=='#'+mode)history.replaceState(null,'','#'+mode)}
 $$('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));window.addEventListener('hashchange',()=>setMode(location.hash.slice(1)));setMode(location.hash.slice(1));
 function connection(ok){online=ok;$('#connection').textContent=ok?'● 실시간 연결':'○ 재연결 중';$('#connection').classList.toggle('offline',!ok);controls()}
 function controls(){const me=snapshot?.players?.find(p=>p.id===snapshot.me),open=me&&online&&!pending&&['waiting','betting'].includes(snapshot.phase)&&!me.ready;$$('.zone,.chip').forEach(b=>b.disabled=!open);$('#clear').disabled=!open||!total(me.bets);$('#deal').disabled=!open||snapshot.phase!=='betting';$('#deal').textContent=me?.ready?'완료 · 친구 기다리는 중':me&&total(me.bets)?'베팅 완료 →':'이번 판 관전 →';$('#leave').disabled=pending}
@@ -43,7 +43,7 @@ async function send(type,extra={}){
 }
 $('#joinForm').onsubmit=async e=>{e.preventDefault();$('#joinStatus').textContent='자리를 준비하고 있습니다…';const intent=e.submitter?.dataset.intent==='create'?'create':'join';const data=await send(intent,{name:$('#nickname').value,code:$('#roomCode').value});if(data?.me){$('#roomCode').value='';try{localStorage.setItem('maison-nickname',$('#nickname').value)}catch{}connectStream()}};
 try{$('#nickname').value=localStorage.getItem('maison-nickname')||''}catch{}
-$('#leave').onclick=async()=>{if(!confirm('퇴장하면 현재 잔액을 돌려받을 수 없습니다. 다시 입장하면 가상 $100으로 시작합니다. 퇴장할까요?'))return;const data=await send('leave');if(data&&!data.me){director.pose('idle','베팅 대기');status('');stageKey='';lastRound=null;announced=null}};
+$('#leave').onclick=async()=>{if(!confirm('퇴장하면 현재 잔액을 돌려받을 수 없습니다. 다시 입장하면 가상 $100으로 시작합니다. 퇴장할까요?'))return;const data=await send('leave');if(data&&!data.me){window.dealerVoiceCancel?.();director.pose('idle','베팅 대기');status('');stageKey='';lastRound=null;announced=null}};
 $('#invite').onclick=async()=>{try{await navigator.clipboard.writeText('MAISON 입장 키: '+$('#roomKey').textContent+'\n'+location.origin+'/#game');status('입장 키와 사이트 주소를 복사했습니다. 친구에게 보내주세요.')}catch{status('입장 키 '+$('#roomKey').textContent+'와 주소창의 링크를 친구에게 알려주세요.')}};
 $$('.chip').forEach(el=>el.onclick=()=>{chip=Number(el.dataset.chip);$$('.chip').forEach(c=>{c.classList.toggle('selected',c===el);c.setAttribute('aria-pressed',String(c===el))});director.pulse(el,'chip-picked');director.pose('betting','칩 선택 · '+money(chip),1200);playEffect('select')});
 $$('.zone').forEach(el=>el.onclick=async()=>{const data=await send('bet',{side:el.dataset.bet,amount:chip});if(data){playEffect('bet');director.flyChip($('.chip.selected'),el,chip/100)}});
@@ -64,7 +64,7 @@ function renderTimeline(){
  $('#countdown').textContent=phase==='waiting'?'칩을 놓으면 시작합니다':phase==='betting'?Math.max(0,Math.ceil((snapshot.deadline-now)/1000))+'초 후 베팅 마감':phase==='result'?Math.max(0,Math.ceil((snapshot.deadline-now)/1000))+'초 후 다음 라운드':'모두에게 같은 카드가 배분됩니다';
  if(!r){
   if(lastRound!==null){director.clearResult();director.clearCards(false).then(()=>{if(!snapshot?.round){$('#pCards').replaceChildren();$('#bCards').replaceChildren()}});lastRound=null;faces.clear()}
-  if(stageKey!==phase){stageKey=phase;if(phase==='waiting')status('');director.pose(phase==='betting'?'betting':'idle',phase==='betting'?'베팅 접수 중':'베팅 대기');$('#pScore').textContent='—';$('#bScore').textContent='—'}
+  if(stageKey!==phase){stageKey=phase;if(phase==='betting')window.dealerSpeak?.('betting');if(phase==='waiting')status('');director.pose(phase==='betting'?'betting':'idle',phase==='betting'?'베팅 접수 중':'베팅 대기');$('#pScore').textContent='—';$('#bScore').textContent='—'}
   const me=snapshot.players.find(p=>p.id===snapshot.me);$('#caption').textContent=me.ready?'베팅 완료. 친구를 기다리고 있습니다.':phase==='betting'?'베팅을 추가하거나 완료해 주세요.':'칩을 선택해 새 라운드를 시작해 주세요.';
   return;
  }

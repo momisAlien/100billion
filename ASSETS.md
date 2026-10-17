@@ -22,3 +22,5 @@ Edit this reference. Keep EXACT same woman identity, facial proportions, tuxedo,
 ## Audio
 
 Original Web Audio synthesis. Separate effects for chip selection, chip placement, cancellation, betting close, card draw, slide, flip, sweep, each winner, tie, payout, insufficient chips, and reset. Ambient harmony uses a separate lower-volume bus. No remote audio assets, recordings or credentials required.
+
+Chip sounds now use original synthesized, damped composite-chip resonances in short staggered impacts, separate from card noise. Dealer speech uses browser/OS speech synthesis with user-selectable voices; no cloned voices or paid TTS service. Custom portraits are selected and processed locally by the user's browser; no new generated image assets are included in this change.

@@ -11,12 +11,26 @@ function noise(dur,frequency,volume){
   const length=Math.ceil(ctx.sampleRate*dur),buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
   const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();source.buffer=buffer;filter.type='bandpass';filter.frequency.value=frequency;filter.Q.value=.8;gain.gain.value=volume;source.connect(filter).connect(gain).connect(fxBus);source.start();source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect()};
 }
+// Short resonant impacts, like stacked clay/composite chips (no card-scrape noise).
+function chips(count=3){
+  if(!soundOn||!ctx||ctx.state!=='running')return;
+  for(let n=0;n<count;n++){
+    const duration=.13,buffer=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*duration),ctx.sampleRate),data=buffer.getChannelData(0);
+    const shift=.94+Math.random()*.12;
+    for(let i=0;i<data.length;i++){
+      const t=i/ctx.sampleRate;
+      data[i]=.42*(Math.sin(2*Math.PI*1180*shift*t)*Math.exp(-t*75)+.5*Math.sin(2*Math.PI*2470*shift*t)*Math.exp(-t*105)+.24*Math.sin(2*Math.PI*3910*shift*t)*Math.exp(-t*145))+(Math.random()*2-1)*.11*Math.exp(-t*1200);
+    }
+    const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;gain.gain.value=.7/(1+n*.25);source.connect(gain).connect(fxBus);source.start(ctx.currentTime+n*.045);source.onended=()=>{source.disconnect();gain.disconnect()};
+  }
+}
 window.playEffect=function(name){
   if(window.tableSoundsEnabled===false)return;
+  const spoken={closed:'closed','player-win':'player','banker-win':'banker',tie:'tie'}[name];if(spoken)window.dealerSpeak?.(spoken);
   switch(name){
-    case 'select':tone(980,.06,.1,'triangle');break;
-    case 'bet':noise(.09,2700,.38);tone(1600,.07,.08,'triangle');tone(2100,.05,.05,'triangle',fxBus,.07);break;
-    case 'cancel':noise(.22,1700,.2);tone(700,.16,.08,'triangle');break;
+    case 'select':chips(1);break;
+    case 'bet':chips(3);break;
+    case 'cancel':chips(4);break;
     case 'closed':tone(392,.3,.1);tone(294,.35,.08,'sine',fxBus,.12);break;
     case 'draw':noise(.18,3400,.18);break;
     case 'slide':noise(.26,1500,.2);break;
@@ -25,7 +39,7 @@ window.playEffect=function(name){
     case 'player-win':[523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,.85,.1,'sine',fxBus,i*.13));break;
     case 'banker-win':[392,493.88,587.33,783.99].forEach((f,i)=>tone(f,.85,.1,'sine',fxBus,i*.13));break;
     case 'tie':[440,554.37,659.25].forEach(f=>tone(f,1.2,.07));break;
-    case 'payout':noise(.18,2900,.3);tone(1320,.2,.07);break;
+    case 'payout':chips(6);break;
     case 'error':tone(150,.22,.1,'triangle');break;
     case 'reset':tone(330,.2,.08);tone(660,.5,.08,'sine',fxBus,.15);break;
   }
@@ -55,7 +69,7 @@ async function setSound(enabled,remember=false){
       await ctx.resume();
       if(ctx.state!=='running')throw new Error('Audio suspended');
     }
-    soundOn=enabled;clearTimeout(timer);
+    soundOn=enabled;if(!enabled)window.dealerVoiceCancel?.();clearTimeout(timer);
     if(master)master.gain.setTargetAtTime(enabled?.7:0,ctx.currentTime,.08);
     if(remember){preferred=enabled;try{localStorage.setItem('maison-sound',enabled?'on':'off')}catch{}}
     renderSound();
