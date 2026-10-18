@@ -42,3 +42,12 @@ Identity prompt variations:
 - Luna: Korean woman, 27, long dark brown high ponytail with airy wispy fringe, heart-shaped face, bright smile.
 - Valentina: Latina woman, 30, olive skin, dark chestnut waves over one shoulder, amber-brown eyes, defined eyebrows, poised expression.
 - Chloe: European woman, 28, short wavy honey-blonde bob, blue eyes, friendly smile.
+
+
+## Revised active roster: twenties and forties
+
+Active twenties: Sophia, Yuna, Rina, Luna, Chloe. Active forties: Seojin, Haruka, Elena, Isabelle, Celine. Older roster assets remain in source history but are not selectable. New final files: `dist/assets/dealers/{seojin40,haruka40,elena40,isabelle40,celine40}.webp`, generated with built-in ImageGen and encoding-only WebP conversion.
+
+Shared prompt: photorealistic four-column, three-row atlas with the same ten action poses and two duplicates described above; consistent face, tuxedo, room, camera and lighting. Clearly mature, beautiful, well-groomed forties woman, realistic age detail, natural smile lines and fine lines around the eyes; luxurious black/gold room, green felt, all playing cards burgundy backs, no text or gutters.
+
+Identity prompts: Seojin, Korean age 43, sleek shoulder-length black side-parted hair, long oval face and pearl studs; Haruka, Japanese age 47, short chestnut waved bob, refined cheekbones and warm eyes; Elena, European age 46, champagne blonde shoulder-length hair and blue-grey eyes; Isabelle, French European age 45, copper-red low chignon, green eyes and subtle freckles; Celine, Italian European age 48, long chestnut hair swept over one shoulder, hazel eyes and defined cheekbones. A preliminary Korean atlas was discarded because its identity too closely resembled the original.

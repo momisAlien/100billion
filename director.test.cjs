@@ -41,8 +41,8 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('dist/director.js','ut
  let releaseCharacter;d.characterLoads.yuna=new Promise(r=>releaseCharacter=r);
  const pending=d.setCharacter('yuna');await d.setCharacter('sophia');releaseCharacter(true);
  assert.equal(await pending,false);assert.equal(d.character,'sophia');
- d.characterLoads.elena=Promise.resolve(false);
- assert.equal(await d.setCharacter('elena'),false);assert.equal(d.character,'sophia');
+ d.characterLoads.elena40=Promise.resolve(false);
+ assert.equal(await d.setCharacter('elena40'),false);assert.equal(d.character,'sophia');
  assert.equal(await d.setCharacter('unknown'),false);
  console.log('Passed: all 10 characters, 10 atlas pose coordinates, character loading race and failed character fallback.');
  const game=require('./dist/game.js');
