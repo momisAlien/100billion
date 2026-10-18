@@ -23,4 +23,22 @@ Edit this reference. Keep EXACT same woman identity, facial proportions, tuxedo,
 
 Original Web Audio synthesis. Separate effects for chip selection, chip placement, cancellation, betting close, card draw, slide, flip, sweep, each winner, tie, payout, insufficient chips, and reset. Ambient harmony uses a separate lower-volume bus. No remote audio assets, recordings or credentials required.
 
-Chip sounds now use original synthesized, damped composite-chip resonances in short staggered impacts, separate from card noise. Dealer speech uses browser/OS speech synthesis with user-selectable voices; no cloned voices or paid TTS service. Custom portraits are selected and processed locally by the user's browser; no new generated image assets are included in this change.
+Chip sounds now use original synthesized, damped composite-chip resonances in short staggered impacts, separate from card noise. Dealer speech uses browser/OS speech synthesis with user-selectable voices; no cloned voices or paid TTS service. Character selection is stored locally in the user's browser.
+
+
+## Ten-character roster (built-in ImageGen)
+
+Original Sophia plus nine fictional adult women. Final assets: `dist/assets/dealers/{yuna,elena,maya,rina,isabelle,aria,luna,valentina,chloe}.webp`. Each is a 1774 × 887 atlas encoded from the original generated PNG without cropping or image edits. CSS selects one cell from a four-column, three-row grid. First ten cells: idle, betting, drawing, deal-player, deal-banker, win-player, win-banker, tie, closed, collecting. Final two cells are unused duplicates. Discrete poses, not video.
+
+Shared prompt: Create a photorealistic sprite atlas, exactly FOUR columns by THREE rows of equal landscape 3:2 cells, no gutters, borders, text or labels. The original dealer is a reference for room and camera style only. Each cell shows the same new fictional adult woman with consistent face, hair, clothing, stationary camera and background. Professional black tuxedo, white shirt, bowtie, fully clothed. Natural beautiful face and realistic skin. Luxury black and gold casino room and green felt. Centered head and visible upper body and hands. Generate the ten gestures above in row-major order, then idle and betting duplicates. No extra people.
+
+Identity prompt variations:
+- Yuna: Korean woman, 28, shoulder-length dark chocolate bob with soft side part, almond eyes, refined oval face, pearl earrings.
+- Elena: European woman, 30, champagne blonde low ponytail, side-swept hair, blue-grey eyes, tiny gold earrings.
+- Maya: woman, 29, warm brown skin, dark wavy hair pulled back, brown eyes, sculpted oval face, gold studs.
+- Rina: Japanese woman, 28, jet-black chin-length bob with straight fringe, dark round eyes, rose lips, pearl earrings.
+- Isabelle: woman, 31, copper-red low chignon and side curl, fair freckles, green eyes, long oval face.
+- Aria: Black woman, 29, deep warm brown skin, sleek high bun, brown eyes, high cheekbones, gold earrings.
+- Luna: Korean woman, 27, long dark brown high ponytail with airy wispy fringe, heart-shaped face, bright smile.
+- Valentina: Latina woman, 30, olive skin, dark chestnut waves over one shoulder, amber-brown eyes, defined eyebrows, poised expression.
+- Chloe: European woman, 28, short wavy honey-blonde bob, blue eyes, friendly smile.

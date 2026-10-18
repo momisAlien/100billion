@@ -3,7 +3,7 @@ class DealerDirector {
   constructor() {
     this.scene=document.querySelector('.scene');
     this.reduced=matchMedia('(prefers-reduced-motion: reduce)');
-    this.ticket=0;this.returnTimer=null;this.current='idle';this.ready={};this.images={};
+    this.character='sophia';this.characterTicket=0;this.characterLoads={};this.poseOrder=['idle','betting','drawing','deal-player','deal-banker','win-player','win-banker','tie','closed','collecting'];this.ticket=0;this.returnTimer=null;this.current='idle';this.ready={};this.images={};
     this.stage=document.createElement('div');this.stage.className='dealer-stage';
     this.stage.setAttribute('aria-hidden','true');this.scene.prepend(this.stage);
     for(const pose of ['idle','betting','drawing','deal-player','deal-banker','win-player','win-banker','tie','closed','collecting']){
@@ -11,13 +11,25 @@ class DealerDirector {
       image.src='assets/dealer-'+pose+'.webp';this.stage.append(image);this.images[pose]=image;
       this.ready[pose]=image.decode().then(()=>true).catch(()=>false);
     }
+    this.atlas=document.createElement('div');this.atlas.className='dealer-atlas';this.stage.append(this.atlas);
     this.phase=document.createElement('div');this.phase.className='phase-indicator';
     this.phase.innerHTML='<i></i><span>베팅 대기</span>';this.scene.append(this.phase);this.scene.dataset.pose='idle';
   }
+  async setCharacter(id){
+    const character=(window.DEALER_ROSTER||[]).find(c=>c.id===id);if(!character)return false;
+    const ticket=++this.characterTicket;
+    if(character.atlas){
+      if(!this.characterLoads[id]){const image=new Image();image.src=character.atlas;this.characterLoads[id]=image.decode().then(()=>true).catch(()=>{delete this.characterLoads[id];return false})}
+      if(!await this.characterLoads[id]||ticket!==this.characterTicket)return false;
+      this.atlas.style.backgroundImage='url("'+character.atlas+'")';
+    }
+    this.character=id;this.scene.classList.toggle('character-atlas',!!character.atlas);this.renderAtlas(this.current);return true;
+  }
+  renderAtlas(name){const i=Math.max(0,this.poseOrder.indexOf(name));this.atlas.style.backgroundPosition=(i%4)*100/3+'% '+Math.floor(i/4)*50+'%'}
   async pose(name,label,returnAfter=0){
     clearTimeout(this.returnTimer);const ticket=++this.ticket;this.phase.lastElementChild.textContent=label;
     const loaded=await Promise.race([this.ready[name],new Promise(resolve=>setTimeout(()=>resolve(false),2500))]);if(ticket!==this.ticket)return;
-    if(loaded){for(const [key,image] of Object.entries(this.images))image.classList.toggle('visible',key===name);this.current=name;this.scene.dataset.pose=name}
+    if(loaded){for(const [key,image] of Object.entries(this.images))image.classList.toggle('visible',key===name);this.current=name;this.scene.dataset.pose=name;this.renderAtlas(name)}
     if(returnAfter)this.returnTimer=setTimeout(()=>this.pose('idle','베팅 대기'),returnAfter);
   }
   duration(ms,fast){return this.reduced.matches?30:fast?Math.round(ms*.48):ms}

@@ -1,47 +1,48 @@
 (() => {
-const $=s=>document.querySelector(s),key='maison-dealer-v1';
-const defaults={name:'소피아',photo:'',x:50,y:30,zoom:100,voice:false,voiceURI:'',volume:80,rate:95};
-let settings={...defaults},photoTicket=0,currentSpeech;
-try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved&&typeof saved==='object')settings={...defaults,...saved}}catch{}
-const clamp=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(min,Math.min(max,Number(value))):fallback;
-settings.name=typeof settings.name==='string'?settings.name.slice(0,16):defaults.name;
-settings.photo=typeof settings.photo==='string'&&/^data:image\/(jpeg|png|webp);base64,/.test(settings.photo)&&settings.photo.length<1500000?settings.photo:'';
-for(const [k,min,max] of [['x',0,100],['y',0,100],['zoom',100,180],['volume',10,100],['rate',75,120]])settings[k]=clamp(settings[k],min,max,defaults[k]);
-settings.voice=settings.voice===true;
-const frame=document.createElement('div');frame.className='custom-dealer-frame';
-const portrait=document.createElement('img');portrait.alt='';frame.append(portrait);$('.dealer-stage').append(frame);
-function apply(){
- $('.scene').classList.toggle('custom-dealer',!!settings.photo);
- portrait.src=settings.photo||'assets/dealer-idle.webp';
- $('#portraitPreview').src=portrait.src;
- for(const image of [portrait,$('#portraitPreview')]){image.style.objectPosition=settings.x+'% '+settings.y+'%';image.style.transform='scale('+settings.zoom/100+')'}
- const tag=$('.dealer-tag');tag.replaceChildren();const light=document.createElement('i');tag.append(light,document.createTextNode(' 딜러 · '+(settings.name.trim()||'소피아')));
+const $=s=>document.querySelector(s),key='maison-dealer-v2',roster=window.DEALER_ROSTER;
+const defaults={character:'sophia',voice:false,voiceURI:'',volume:80,rate:95};
+let settings={...defaults},currentSpeech,selection=0,applying=0;
+try{const saved=JSON.parse(localStorage.getItem(key)||localStorage.getItem('maison-dealer-v1')||'null');if(saved)for(const k of Object.keys(defaults))if(saved[k]!==undefined)settings[k]=saved[k]}catch{}
+if(!roster.some(c=>c.id===settings.character))settings.character='sophia';
+settings.voice=settings.voice===true;settings.volume=Math.max(10,Math.min(100,Number(settings.volume)||80));settings.rate=Math.max(75,Math.min(120,Number(settings.rate)||95));
+settings.name=roster.find(c=>c.id===settings.character).name;
+selection=roster.findIndex(c=>c.id===settings.character);
+function persist(){try{localStorage.setItem(key,JSON.stringify(settings));return true}catch{$('#customStatus').textContent='이 브라우저에서 설정 저장이 차단돼 있습니다. 이번 접속 동안 적용됩니다.';return false}}
+function fields(){$('#dealerVoice').checked=settings.voice;$('#voiceVolume').value=settings.volume;$('#voiceRate').value=settings.rate}
+function picture(el,c){el.style.backgroundImage='url("'+(c.atlas||c.image)+'")';el.classList.toggle('atlas-picture',!!c.atlas)}
+function render(){
+ const c=roster[selection];picture($('#characterPortrait'),c);$('#characterPortrait').setAttribute('aria-label',c.name+' 딜러 미리보기');
+ $('#characterName').textContent=c.name+' · '+c.english;$('#characterTag').textContent=c.tag;$('#characterDescription').textContent=c.description;
+ $('#characterNumber').textContent=String(selection+1).padStart(2,'0')+' / '+roster.length;
+ $('#chooseDealer').textContent=c.id===settings.character?'선택 중 · '+c.name+'와 플레이 →':c.name+' 딜러 선택 →';
+ for(const [i,button] of [...$('#dealerRoster').children].entries()){button.classList.toggle('browsing',i===selection);button.classList.toggle('equipped',roster[i].id===settings.character);button.setAttribute('aria-pressed',String(i===selection))}
 }
-function persist(){try{localStorage.setItem(key,JSON.stringify(settings));$('#customStatus').textContent='이 브라우저에 저장했습니다.';return true}catch{$('#customStatus').textContent='저장 공간이 부족하거나 저장이 차단됐습니다. 현재 화면에는 적용되지만 새로고침하면 초기화될 수 있어요.';return false}}
-function fields(){
- $('#dealerName').value=settings.name;$('#dealerVoice').checked=settings.voice;
- for(const [id,k] of [['portraitX','x'],['portraitY','y'],['portraitZoom','zoom'],['voiceVolume','volume'],['voiceRate','rate']])$('#'+id).value=settings[k];
+function move(step){selection=(selection+step+roster.length)%roster.length;render();$('#dealerRoster').children[selection].scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}
+for(const [i,c] of roster.entries()){
+ const button=document.createElement('button');button.className='roster-card';button.setAttribute('aria-label',c.name+' 선택');
+ const photo=document.createElement('span');photo.className='roster-photo';picture(photo,c);const name=document.createElement('span');name.textContent=c.name;button.append(photo,name);
+ button.onclick=()=>{selection=i;render()};$('#dealerRoster').append(button);
 }
-$('#dealerSettings').onclick=()=>{$('#dealerDialog').showModal();fields();voices()};
+async function applyCharacter(id,close=true){
+ const request=++applying;$('#chooseDealer').disabled=true;$('#customStatus').textContent='딜러를 준비하고 있습니다…';
+ const ok=await director.setCharacter(id);if(request!==applying)return;
+ $('#chooseDealer').disabled=false;
+ if(!ok){$('#customStatus').textContent='딜러 이미지를 불러오지 못했습니다. 연결을 확인하고 다시 선택해 주세요.';return}
+ settings.character=id;settings.name=roster.find(c=>c.id===id).name;
+ const tag=$('.dealer-tag');tag.replaceChildren();const light=document.createElement('i');tag.append(light,document.createTextNode(' 딜러 · '+settings.name));
+ const saved=persist();if(saved)$('#customStatus').textContent=settings.name+' 딜러를 선택했습니다.';render();
+ if(close){$('#dealerDialog').close();window.dealerVoiceCancel()}
+}
+$('#dealerSettings').onclick=()=>{selection=roster.findIndex(c=>c.id===settings.character);render();fields();voices();$('#dealerDialog').showModal()};
 $('#closeCustom').onclick=()=>{$('#dealerDialog').close();window.dealerVoiceCancel()};
 $('#dealerDialog').addEventListener('cancel',()=>window.dealerVoiceCancel());
-$('#saveCustom').onclick=()=>{if(persist())$('#dealerDialog').close();window.dealerVoiceCancel()};
-$('#dealerName').oninput=()=>{settings.name=$('#dealerName').value;apply();persist()};
-for(const [id,k] of [['portraitX','x'],['portraitY','y'],['portraitZoom','zoom'],['voiceVolume','volume'],['voiceRate','rate']])$('#'+id).oninput=()=>{settings[k]=Number($('#'+id).value);apply();persist()};
-$('#resetPortrait').onclick=()=>{photoTicket++;settings.photo='';settings.x=50;settings.y=30;settings.zoom=100;$('#dealerPhoto').value='';fields();apply();persist()};
-$('#dealerPhoto').onchange=async()=>{
- const ticket=++photoTicket,file=$('#dealerPhoto').files[0];if(!file)return;
- if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024){$('#customStatus').textContent='10MB 이하의 JPG, PNG, WebP 사진을 선택해 주세요.';return}
- const url=URL.createObjectURL(file);$('#customStatus').textContent='사진을 준비하고 있습니다…';
- try{
-  const image=new Image();image.src=url;await image.decode();if(ticket!==photoTicket)return;
-  if(!image.width||!image.height)throw new Error('Invalid image');
-  const ratio=Math.min(1,960/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*ratio));canvas.height=Math.max(1,Math.round(image.height*ratio));
-  canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
-  settings.photo=canvas.toDataURL('image/jpeg',.82);settings.x=50;settings.y=30;settings.zoom=100;
-  fields();apply();persist();
- }catch{$('#customStatus').textContent='사진을 읽지 못했습니다. 다른 사진을 선택해 주세요.'}finally{URL.revokeObjectURL(url)}
-};
+$('#previousDealer').onclick=()=>move(-1);$('#nextDealer').onclick=()=>move(1);
+$('#characterCarousel').onkeydown=e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();move(e.key==='ArrowRight'?1:-1)}};
+let touchStart;
+$('#characterCarousel').addEventListener('touchstart',e=>{touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
+$('#characterCarousel').addEventListener('touchend',e=>{if(!touchStart)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;touchStart=null;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy))move(dx<0?1:-1)},{passive:true});
+$('#chooseDealer').onclick=()=>applyCharacter(roster[selection].id);
+for(const [id,k] of [['voiceVolume','volume'],['voiceRate','rate']])$('#'+id).oninput=()=>{settings[k]=Number($('#'+id).value);persist()};
 const synth=window.speechSynthesis,supported=!!synth&&!!window.SpeechSynthesisUtterance;
 function voices(){
  const select=$('#voiceChoice');select.replaceChildren();const first=document.createElement('option');first.value='';first.textContent='기기 기본 한국어 음성';select.append(first);
@@ -69,5 +70,5 @@ $('#voiceChoice').onchange=()=>{settings.voiceURI=$('#voiceChoice').value;window
 $('#testVoice').onclick=()=>window.dealerSpeak('test',true);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)window.dealerVoiceCancel()});
 if(supported)synth.addEventListener('voiceschanged',voices);
-fields();apply();voices();
+fields();render();applyCharacter(settings.character,false);voices();
 })();

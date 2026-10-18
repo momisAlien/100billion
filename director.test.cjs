@@ -24,6 +24,27 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('dist/director.js','ut
  d.ready.closed=Promise.resolve(false);await d.pose('closed','closed');assert.equal(d.current,'collecting');
  d.clearResult();assert.equal(d.scene.dataset.result,undefined);assert.ok(!get('.result-banner').classes.has('show'));
  for(const pose of Object.keys(d.images))assert.ok(fs.statSync('dist/assets/dealer-'+pose+'.webp').size>1000);
+
+ vm.runInContext(fs.readFileSync('dist/dealers.js','utf8'),context);
+ assert.equal(context.window.DEALER_ROSTER.length,10);
+ for(const character of context.window.DEALER_ROSTER){
+  assert.equal(await d.setCharacter(character.id),true);
+  assert.equal(d.character,character.id);
+  assert.equal(d.scene.classes.has('character-atlas'),!!character.atlas);
+  if(character.atlas)assert.ok(fs.statSync('dist/'+character.atlas).size>1000);
+ }
+ d.ready.closed=Promise.resolve(true);
+ for(const [i,pose] of d.poseOrder.entries()){
+  await d.pose(pose,pose);
+  assert.equal(d.atlas.style.backgroundPosition,(i%4)*100/3+'% '+Math.floor(i/4)*50+'%');
+ }
+ let releaseCharacter;d.characterLoads.yuna=new Promise(r=>releaseCharacter=r);
+ const pending=d.setCharacter('yuna');await d.setCharacter('sophia');releaseCharacter(true);
+ assert.equal(await pending,false);assert.equal(d.character,'sophia');
+ d.characterLoads.elena=Promise.resolve(false);
+ assert.equal(await d.setCharacter('elena'),false);assert.equal(d.character,'sophia');
+ assert.equal(await d.setCharacter('unknown'),false);
+ console.log('Passed: all 10 characters, 10 atlas pose coordinates, character loading race and failed character fallback.');
  const game=require('./dist/game.js');
  const a={value:1},b={value:2},c={value:3},e={value:4},f={value:5},g={value:6};
  assert.deepEqual(game.sequence({p:[a,c,f],b:[b,e,g]}),[['p',a],['b',b],['p',c],['b',e],['p',f],['b',g]]);

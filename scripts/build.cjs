@@ -1,5 +1,9 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..');
-for(const file of ['app.js','customize.js','audio.js','director.js','game.js'])new vm.Script(fs.readFileSync(path.join(root,'dist',file),'utf8'),{filename:file});
+for(const file of ['app.js','dealers.js','customize.js','audio.js','director.js','game.js'])new vm.Script(fs.readFileSync(path.join(root,'dist',file),'utf8'),{filename:file});
 for(const pose of ['idle','betting','drawing','deal-player','deal-banker','win-player','win-banker','tie','closed','collecting'])if(!fs.existsSync(path.join(root,'dist/assets/dealer-'+pose+'.webp')))throw new Error('Missing dealer pose: '+pose);
-console.log('Static client and all 10 dealer images validated. Vercel API: api/room.js');
+const context={window:{}};vm.runInNewContext(fs.readFileSync(path.join(root,'dist/dealers.js'),'utf8'),context);
+const roster=context.window.DEALER_ROSTER;
+if(roster.length!==10||new Set(roster.map(c=>c.id)).size!==10)throw new Error('Expected 10 unique dealers');
+for(const c of roster)if(!fs.existsSync(path.join(root,'dist',c.atlas||c.image)))throw new Error('Missing character: '+c.id);
+console.log('Static client, 10 characters and all pose assets validated. Vercel API: api/room.js');
