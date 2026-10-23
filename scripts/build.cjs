@@ -6,5 +6,8 @@ const context={window:{}};vm.runInNewContext(fs.readFileSync(path.join(root,'dis
 const roster=context.window.DEALER_ROSTER;
 if(roster.length!==10||new Set(roster.map(c=>c.id)).size!==10)throw new Error('Expected 10 unique dealers');
 for(const age of [20,40])if(roster.filter(c=>c.ageGroup===age).length!==5)throw new Error('Expected five dealers per age group');
-for(const c of roster)if(!fs.existsSync(path.join(root,'dist',c.atlas||c.image)))throw new Error('Missing character: '+c.id);
+for(const c of roster){
+ if(!fs.existsSync(path.join(root,'dist',c.image)))throw new Error('Missing character: '+c.id);
+ if(c.posesBase)for(const pose of ['idle','betting','drawing','deal-player','deal-banker','win-player','win-banker','tie','closed','collecting'])if(!fs.existsSync(path.join(root,'dist',c.posesBase,pose+'.webp')))throw new Error('Missing HD pose: '+c.id+'/'+pose);
+}
 console.log('Static client, 10 characters and all pose assets validated. Vercel API: api/room.js');

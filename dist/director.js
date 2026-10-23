@@ -11,25 +11,37 @@ class DealerDirector {
       image.src='assets/dealer-'+pose+'.webp';this.stage.append(image);this.images[pose]=image;
       this.ready[pose]=image.decode().then(()=>true).catch(()=>false);
     }
-    this.atlas=document.createElement('div');this.atlas.className='dealer-atlas';this.stage.append(this.atlas);
     this.phase=document.createElement('div');this.phase.className='phase-indicator';
     this.phase.innerHTML='<i></i><span>베팅 대기</span>';this.scene.append(this.phase);this.scene.dataset.pose='idle';
   }
   async setCharacter(id){
     const character=(window.DEALER_ROSTER||[]).find(c=>c.id===id);if(!character)return false;
     const ticket=++this.characterTicket;
-    if(character.atlas){
-      if(!this.characterLoads[id]){const image=new Image();image.src=character.atlas;this.characterLoads[id]=image.decode().then(()=>true).catch(()=>{delete this.characterLoads[id];return false})}
-      if(!await this.characterLoads[id]||ticket!==this.characterTicket)return false;
-      this.atlas.style.backgroundImage='url("'+character.atlas+'")';
+    if(id===this.character)return true;
+    if(!this.characterLoads[id]){
+      const images={},ready={};
+      for(const pose of this.poseOrder){
+        const image=new Image();image.className='dealer-frame';image.alt='';
+        image.src=character.posesBase?character.posesBase+'/'+pose+'.webp':'assets/dealer-'+pose+'.webp';
+        images[pose]=image;ready[pose]=image.decode().then(()=>true).catch(()=>false);
+      }
+      this.characterLoads[id]=Promise.all(Object.values(ready)).then(ok=>ok.every(Boolean)?{images,ready}:null);
     }
-    this.character=id;this.scene.classList.toggle('character-atlas',!!character.atlas);this.renderAtlas(this.current);return true;
+    const frames=await this.characterLoads[id];
+    if(!frames){delete this.characterLoads[id];return false}
+    if(ticket!==this.characterTicket){delete this.characterLoads[id];return false}
+    for(const image of Object.values(this.images))image.remove();
+    this.images=frames.images;this.ready=frames.ready;
+    for(const [pose,image] of Object.entries(this.images)){image.classList.toggle('visible',pose===this.current);this.stage.append(image)}
+    this.character=id;
+    // Retain only the active set: avoid keeping 100 decoded HD photographs in memory.
+    for(const key of Object.keys(this.characterLoads))if(key!==id)delete this.characterLoads[key];
+    return true;
   }
-  renderAtlas(name){const i=Math.max(0,this.poseOrder.indexOf(name));this.atlas.style.backgroundPosition=(i%4)*100/3+'% '+Math.floor(i/4)*50+'%'}
   async pose(name,label,returnAfter=0){
     clearTimeout(this.returnTimer);const ticket=++this.ticket;this.phase.lastElementChild.textContent=label;
     const loaded=await Promise.race([this.ready[name],new Promise(resolve=>setTimeout(()=>resolve(false),2500))]);if(ticket!==this.ticket)return;
-    if(loaded){for(const [key,image] of Object.entries(this.images))image.classList.toggle('visible',key===name);this.current=name;this.scene.dataset.pose=name;this.renderAtlas(name)}
+    if(loaded){for(const [key,image] of Object.entries(this.images))image.classList.toggle('visible',key===name);this.current=name;this.scene.dataset.pose=name}
     if(returnAfter)this.returnTimer=setTimeout(()=>this.pose('idle','베팅 대기'),returnAfter);
   }
   duration(ms,fast){return this.reduced.matches?30:fast?Math.round(ms*.48):ms}

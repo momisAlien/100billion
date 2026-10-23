@@ -9,7 +9,7 @@ settings.name=roster.find(c=>c.id===settings.character).name;
 selection=roster.findIndex(c=>c.id===settings.character);
 function persist(){try{localStorage.setItem(key,JSON.stringify(settings));return true}catch{$('#customStatus').textContent='이 브라우저에서 설정 저장이 차단돼 있습니다. 이번 접속 동안 적용됩니다.';return false}}
 function fields(){$('#dealerVoice').checked=settings.voice;$('#voiceVolume').value=settings.volume;$('#voiceRate').value=settings.rate}
-function picture(el,c){el.style.backgroundImage='url("'+(c.atlas||c.image)+'")';el.classList.toggle('atlas-picture',!!c.atlas)}
+function picture(el,c){el.style.backgroundImage='url("'+c.image+'")'}
 function render(){
  const c=roster[selection];picture($('#characterPortrait'),c);$('#characterPortrait').setAttribute('aria-label',c.name+' 딜러 미리보기');
  $('#characterName').textContent=c.name+' · '+c.english;$('#characterTag').textContent=c.tag;$('#characterDescription').textContent=c.description;

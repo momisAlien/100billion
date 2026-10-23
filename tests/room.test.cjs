@@ -38,3 +38,17 @@ test('countdown starts without ready, stale seats expire and invalid stakes cann
 test('departed locked bet cannot be credited to a newly entered $100 seat',()=>{
  const r=R.createRoom();join(r,'a');rig(r,[4,2,5,3]);R.action(r,'a',req('bet',{side:'P',amount:1000}),2000);R.action(r,'a',req('ready'),2100);R.action(r,'a',req('leave'),2200);join(r,'a','New',2300);R.advance(r,r.round.endAt);assert.equal(r.players[0].balance,10000);
 });
+
+test('all three viewers share wagers, readiness, cards and per-seat round results',()=>{
+ const r=R.createRoom();for(const h of ['a','b','c'])join(r,h);rig(r,[2,4,3,5]);
+ for(const [h,side] of [['a','P'],['b','B'],['c','T']])R.action(r,h,req('bet',{side,amount:1000}),2000);
+ R.action(r,'a',req('ready'),2100);
+ const views=['a','b','c'].map(h=>R.view(r,h,2100));
+ for(const v of views){assert.deepEqual(v.players.map(p=>p.bets),[{P:1000,B:0,T:0},{P:0,B:1000,T:0},{P:0,B:0,T:1000}]);assert.equal(v.players[0].ready,true);assert.ok(v.players.every(p=>p.roundNet===null));}
+ for(const h of ['b','c'])R.action(r,h,req('ready'),2200);
+ R.advance(r,r.round.endAt);
+ const results=['a','b','c'].map(h=>R.view(r,h,r.round.endAt));
+ for(const v of results){assert.deepEqual(v.players.map(p=>p.roundNet),[-1000,950,-1000]);assert.deepEqual(v.round.steps,results[0].round.steps);assert.equal(v.round.winner,'B');}
+ R.action(r,'c',req('leave'),r.round.endAt+1);join(r,'d','new friend',r.round.endAt+2);
+ assert.equal(R.view(r,'d',r.round.endAt+2).players.find(p=>p.name==='new friend').roundNet,null);
+});

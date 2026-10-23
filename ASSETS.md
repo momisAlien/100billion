@@ -51,3 +51,12 @@ Active twenties: Sophia, Yuna, Rina, Luna, Chloe. Active forties: Seojin, Haruka
 Shared prompt: photorealistic four-column, three-row atlas with the same ten action poses and two duplicates described above; consistent face, tuxedo, room, camera and lighting. Clearly mature, beautiful, well-groomed forties woman, realistic age detail, natural smile lines and fine lines around the eyes; luxurious black/gold room, green felt, all playing cards burgundy backs, no text or gutters.
 
 Identity prompts: Seojin, Korean age 43, sleek shoulder-length black side-parted hair, long oval face and pearl studs; Haruka, Japanese age 47, short chestnut waved bob, refined cheekbones and warm eyes; Elena, European age 46, champagne blonde shoulder-length hair and blue-grey eyes; Isabelle, French European age 45, copper-red low chignon, green eyes and subtle freckles; Celine, Italian European age 48, long chestnut hair swept over one shoulder, hazel eyes and defined cheekbones. A preliminary Korean atlas was discarded because its identity too closely resembled the original.
+
+
+## Full-resolution replacement (current)
+
+The active non-Sophia dealers now use ten separate 1536 × 1024 images each, under `dist/assets/dealers-hd/<character>/<pose>.webp`. Sophia's original photographs are unchanged. All characters use the same renderer, 3:2 image ratio, camera distance and table placement. WebP quality 92, encoding only: no upscaling, cropping, mirroring or synthetic sharpening. Previous small atlases are no longer rendered by the game or carousel.
+
+Built-in ImageGen prompt for idle: create ONE single 1536x1024 landscape 3:2 photograph, not a grid/collage. Sophia image is exact composition reference: camera distance, centered woman, head top5%, table rail56%, empty felt lower44%, background and tuxedo. Character atlas is identity reference only. Replace Sophia with the same character identity, hair and age. Hands resting together, sharp realistic facial/hair/fabric detail. No text or playing cards, no zoom/crop.
+
+Built-in ImageGen prompt for each action: edit the new idle reference into ONE single 1536x1024 3:2 photograph. Preserve exact identity, hairstyle, age, clothing, room, light and framing. Change only arms, hands, gaze and expression to the named pose from the original ten-pose list. No grid, labels, zoom, crop or face-up cards. Generated originals are retained separately.
