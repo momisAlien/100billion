@@ -1,13 +1,13 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 function setup(saved){
- const elements=new Map(),events={},storage=new Map(saved?[['maison-sound',saved]]:[]);let tones=0,context;const buffers=[];
+ const elements=new Map(),events={},storage=new Map(saved?[['maison-sound',saved]]:[]);let tones=0,context;const buffers=[],recordings=[];
  const el=id=>{if(!elements.has(id))elements.set(id,{textContent:'',hidden:false,attrs:{},listeners:{},setAttribute(k,v){this.attrs[k]=v},addEventListener(k,v){this.listeners[k]=v}});return elements.get(id)};
  const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(){}});
  const node=()=>({gain:param(),frequency:param(),Q:param(),connect(n){return n},disconnect(){},start(){tones++},stop(){}});
- class AudioContext{constructor(){context=this;this.state='suspended';this.currentTime=0;this.destination={};this.sampleRate=44100}async resume(){this.state='running'}async suspend(){this.state='suspended'}createGain(){return node()}createOscillator(){return node()}createBuffer(channels,length){const data=new Float32Array(length);buffers.push(data);return {getChannelData:()=>data}}createBufferSource(){return node()}createBiquadFilter(){return node()}}
+ class AudioContext{constructor(){context=this;this.state='suspended';this.currentTime=0;this.destination={};this.sampleRate=44100}async resume(){this.state='running'}async suspend(){this.state='suspended'}async decodeAudioData(data){return {sample:data}}createGain(){return node()}createOscillator(){return node()}createBuffer(channels,length){const data=new Float32Array(length);buffers.push(data);return {getChannelData:()=>data}}createBufferSource(){const n=node();n.start=()=>{tones++;if(n.buffer?.sample)recordings.push(n.buffer.sample)};return n}createBiquadFilter(){return node()}}
  const document={hidden:false,querySelector:el,addEventListener:(k,v)=>events[k]=v};const window={AudioContext};
- vm.runInNewContext(fs.readFileSync(require.resolve('../dist/audio.js'),'utf8'),{document,window,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setTimeout:()=>1,clearTimeout(){},Math,Float32Array});
- return {el,events,storage,window,document,buffers,get tones(){return tones},get context(){return context}};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../dist/audio.js'),'utf8'),{document,window,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setTimeout:()=>1,clearTimeout(){},Math,Float32Array,fetch:async url=>({ok:true,arrayBuffer:async()=>url})});
+ return {el,events,storage,window,document,buffers,recordings,get tones(){return tones},get context(){return context}};
 }
 const flush=()=>new Promise(r=>setImmediate(r));
 test('audio starts on room entry, produces music/effects, and remembers explicit mute',async()=>{
@@ -25,8 +25,9 @@ test('saved mute stays silent; refreshed active table can unlock sound with a ge
  const active=setup('on');active.events.pointerdown({target:{closest:()=>null}});await flush();assert.ok(active.tones>0);
 });
 
-test('chip placement uses three short decaying impacts without clipped samples',async()=>{
- const a=setup();await a.el('#sound').onclick();const before=a.buffers.length;
- a.window.playEffect('bet');const impacts=a.buffers.slice(before);assert.equal(impacts.length,3);
- for(const samples of impacts){assert.equal(samples.length,Math.ceil(44100*.13));assert.ok(samples.every(n=>Number.isFinite(n)&&Math.abs(n)<1));const head=samples.slice(0,441).reduce((sum,n)=>sum+n*n,0);const tail=samples.slice(-441).reduce((sum,n)=>sum+n*n,0);assert.ok(head>tail*100)}
+test('one assigned recording per bet, consistent across repeated bets and silent when muted',async()=>{
+ const a=setup();await a.el('#sound').onclick();await flush();
+ a.window.playEffect('bet',0);a.window.playEffect('bet',0);a.window.playEffect('bet',1);
+ assert.deepEqual(a.recordings,['assets/audio/chip-1.mp3','assets/audio/chip-1.mp3','assets/audio/chip-2.mp3']);
+ await a.el('#sound').onclick();a.window.playEffect('bet',1);assert.equal(a.recordings.length,3);
 });

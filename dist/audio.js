@@ -24,12 +24,24 @@ function chips(count=3){
     const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;gain.gain.value=.7/(1+n*.25);source.connect(gain).connect(fxBus);source.start(ctx.currentTime+n*.045);source.onended=()=>{source.disconnect();gain.disconnect()};
   }
 }
-window.playEffect=function(name){
+const chipSamples=[null,null];let sampleLoad;
+function loadChipSamples(){
+ if(!sampleLoad)sampleLoad=Promise.all([1,2].map(async(n)=>{
+  try{const response=await fetch('assets/audio/chip-'+n+'.mp3');if(!response.ok)throw Error('Audio unavailable');chipSamples[n-1]=await ctx.decodeAudioData(await response.arrayBuffer())}catch{}
+ })).then(()=>{sampleLoad=null});
+ return sampleLoad;
+}
+function recordedChip(variant=0){
+ if(!soundOn||!ctx||ctx.state!=='running'||document.hidden)return;
+ const buffer=chipSamples[variant===1?1:0];if(!buffer)return;
+ const source=ctx.createBufferSource();source.buffer=buffer;source.connect(fxBus);source.start();source.onended=()=>source.disconnect();
+}
+window.playEffect=function(name,variant){
   if(window.tableSoundsEnabled===false)return;
   const spoken={closed:'closed','player-win':'player','banker-win':'banker',tie:'tie'}[name];if(spoken)window.dealerSpeak?.(spoken);
   switch(name){
     case 'select':chips(1);break;
-    case 'bet':chips(3);break;
+    case 'bet':recordedChip(variant);break;
     case 'cancel':chips(4);break;
     case 'closed':tone(392,.3,.1);tone(294,.35,.08,'sine',fxBus,.12);break;
     case 'draw':noise(.18,3400,.18);break;
@@ -73,7 +85,7 @@ async function setSound(enabled,remember=false){
     if(master)master.gain.setTargetAtTime(enabled?.7:0,ctx.currentTime,.08);
     if(remember){preferred=enabled;try{localStorage.setItem('maison-sound',enabled?'on':'off')}catch{}}
     renderSound();
-    if(enabled){music();tone(980,.12,.12,'triangle')}
+    if(enabled){loadChipSamples();music();tone(980,.12,.12,'triangle')}
   }catch{
     soundOn=false;renderSound();
     $('#sound span').textContent='눌러서 사운드 켜기';

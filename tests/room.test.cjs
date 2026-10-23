@@ -52,3 +52,9 @@ test('all three viewers share wagers, readiness, cards and per-seat round result
  R.action(r,'c',req('leave'),r.round.endAt+1);join(r,'d','new friend',r.round.endAt+2);
  assert.equal(R.view(r,'d',r.round.endAt+2).players.find(p=>p.name==='new friend').roundNet,null);
 });
+
+test('chip sound is assigned once per player and shared in snapshots and bet events',()=>{
+ const r=R.createRoom();join(r,'a');join(r,'b');const assigned=r.players[0].chipSound;assert.ok([0,1].includes(assigned));
+ for(let i=0;i<3;i++){R.action(r,'a',req('bet',{side:'P',amount:100}),2000+i);assert.equal(r.event.chipSound,assigned);assert.equal(R.view(r,'b',2000+i).players[0].chipSound,assigned)}
+ join(r,'a','again',2100);assert.equal(r.players[0].chipSound,assigned);
+});

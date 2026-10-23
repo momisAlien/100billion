@@ -60,3 +60,6 @@ The active non-Sophia dealers now use ten separate 1536 × 1024 images each, und
 Built-in ImageGen prompt for idle: create ONE single 1536x1024 landscape 3:2 photograph, not a grid/collage. Sophia image is exact composition reference: camera distance, centered woman, head top5%, table rail56%, empty felt lower44%, background and tuxedo. Character atlas is identity reference only. Replace Sophia with the same character identity, hair and age. Hands resting together, sharp realistic facial/hair/fabric detail. No text or playing cards, no zoom/crop.
 
 Built-in ImageGen prompt for each action: edit the new idle reference into ONE single 1536x1024 3:2 photograph. Preserve exact identity, hairstyle, age, clothing, room, light and framing. Change only arms, hands, gaze and expression to the named pose from the original ten-pose list. No grid, labels, zoom, crop or face-up cards. Generated originals are retained separately.
+
+### Player chip recordings
+`dist/assets/audio/chip-1.mp3` and `chip-2.mp3` are user-supplied sound1.mp3 and sound2.mp3, copied without modification. Each joining player receives one random sound variant, shared with other room members for that session.

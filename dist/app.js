@@ -53,7 +53,7 @@ function receive(data){
  $('#road').innerHTML=Array.from({length:48},(_,i)=>{const h=data.history.slice(-48)[i];return '<div>'+(h?'<span class="bead '+h.winner+'">'+h.winner+'</span>':'')+'</div>'}).join('');
  seats();
  const event=data.event;if(event&&event.id!==lastEvent){const prior=lastEvent;lastEvent=event.id;if(prior&&Date.now()+clockOffset-event.at<3500&&['waiting','betting'].includes(data.phase)){
-  if(event.type==='bet'){director.pose('betting',event.name+' 님 베팅',1000);director.pulse($('[data-bet="'+event.side+'"]'),'bet-landed');if(event.playerId!==data.me)playEffect('bet')}
+  if(event.type==='bet'){director.pose('betting',event.name+' 님 베팅',1000);director.pulse($('[data-bet="'+event.side+'"]'),'bet-landed');if(event.playerId!==data.me)playEffect('bet',event.chipSound)}
   else if(event.type==='clear'){director.pose('collecting','베팅 반환',1000);playEffect('cancel')}
   else if(event.type==='join')director.pose('betting','새로운 친구가 입장했습니다',1500);
  }}
@@ -76,7 +76,7 @@ try{$('#nickname').value=localStorage.getItem('maison-nickname')||''}catch{}
 $('#leave').onclick=async()=>{if(!confirm('퇴장하면 현재 잔액을 돌려받을 수 없습니다. 다시 입장하면 가상 $100으로 시작합니다. 퇴장할까요?'))return;const data=await send('leave');if(data&&!data.me){window.dealerVoiceCancel?.();director.pose('idle','베팅 대기');status('');stageKey='';lastRound=null;announced=null}};
 $('#invite').onclick=async()=>{try{await navigator.clipboard.writeText('MAISON 입장 키: '+$('#roomKey').textContent+'\n'+location.origin+'/#game');status('입장 키와 사이트 주소를 복사했습니다. 친구에게 보내주세요.')}catch{status('입장 키 '+$('#roomKey').textContent+'와 주소창의 링크를 친구에게 알려주세요.')}};
 $$('.chip').forEach(el=>el.onclick=()=>{chip=Number(el.dataset.chip);$$('.chip').forEach(c=>{c.classList.toggle('selected',c===el);c.setAttribute('aria-pressed',String(c===el))});director.pulse(el,'chip-picked');director.pose('betting','칩 선택 · '+money(chip),1200);playEffect('select')});
-$$('.zone').forEach(el=>el.onclick=async()=>{const data=await send('bet',{side:el.dataset.bet,amount:chip});if(data){playEffect('bet');director.flyChip($('.chip.selected'),el,chip/100)}});
+$$('.zone').forEach(el=>el.onclick=async()=>{const data=await send('bet',{side:el.dataset.bet,amount:chip});if(data){playEffect('bet',data.players.find(p=>p.id===data.me)?.chipSound);director.flyChip($('.chip.selected'),el,chip/100)}});
 $('#clear').onclick=async()=>{const me=snapshot?.players.find(p=>p.id===snapshot.me),bets=me?{...me.bets}:null;const data=await send('clear');if(data&&bets)for(const k of ['P','B','T'])if(bets[k])director.flyChip($('[data-bet="'+k+'"]'),$('.chip.selected'),bets[k]/100)};
 $('#deal').onclick=async()=>{const data=await send('ready');if(data)status(data.phase==='dealing'?'모두 준비됐습니다. 딜러가 카드를 나눕니다.':'베팅 완료. 친구들의 준비 또는 마감 시간을 기다립니다.')};
 function faceHtml(c){return '<b>'+c.rank+'</b><small>'+c.suit+'</small><span class="suit">'+c.suit+'</span><span class="corner">'+c.rank+'<small>'+c.suit+'</small></span>'}
