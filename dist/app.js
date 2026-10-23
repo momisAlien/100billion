@@ -9,7 +9,20 @@ function status(text,error=false){$('#actionStatus').textContent=text;$('#action
 function setMode(next){mode=next==='rules'?'rules':'game';window.tableSoundsEnabled=mode==='game';if(mode!=='game')window.dealerVoiceCancel?.();$('#gameMode').hidden=mode!=='game';$('#rulesMode').hidden=mode!=='rules';$$('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===mode);if(b.dataset.mode===mode)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});$('#lessonLive').hidden=!snapshot?.me;if(location.hash!=='#'+mode)history.replaceState(null,'','#'+mode)}
 $$('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));window.addEventListener('hashchange',()=>setMode(location.hash.slice(1)));setMode(location.hash.slice(1));
 function connection(ok){online=ok;$('#connection').textContent=ok?'● 실시간 연결':'○ 재연결 중';$('#connection').classList.toggle('offline',!ok);if(snapshot?.me)seats();controls()}
-function controls(){const me=snapshot?.players?.find(p=>p.id===snapshot.me),open=me&&online&&!pending&&['waiting','betting'].includes(snapshot.phase)&&!me.ready;$$('.zone,.chip').forEach(b=>b.disabled=!open);$('#clear').disabled=!open||!total(me.bets);$('#deal').disabled=!open||snapshot.phase!=='betting';$('#deal').textContent=me?.ready?'완료 · 친구 기다리는 중':me&&total(me.bets)?'베팅 완료 →':'이번 판 관전 →';$('#leave').disabled=pending}
+function controls(){const me=snapshot?.players?.find(p=>p.id===snapshot.me),open=me&&online&&!pending&&['waiting','betting'].includes(snapshot.phase)&&!me.ready;$$('.zone,.chip').forEach(b=>b.disabled=!open||(b.dataset.bet==='P'&&me.bets.B>0)||(b.dataset.bet==='B'&&me.bets.P>0));$('#clear').disabled=!open||!total(me.bets);$('#deal').disabled=!open||snapshot.phase!=='betting';$('#deal').textContent=me?.ready?'완료 · 친구 기다리는 중':me&&total(me.bets)?'베팅 완료 →':'이번 판 관전 →';$('#leave').disabled=pending}
+function tableChips(){
+ for(const side of ['P','T','B']){
+  const zone=$('[data-bet="'+side+'"]');let pile=zone.querySelector('.table-chip-piles');
+  if(!pile){pile=document.createElement('span');pile.className='table-chip-piles';zone.append(pile)}
+  const entries=snapshot.players.filter(p=>p.bets[side]>0);const signature=JSON.stringify(entries.map(p=>[p.id,p.name,p.bets[side]]));
+  if(pile.dataset.signature===signature)continue;pile.dataset.signature=signature;pile.replaceChildren();
+  for(const p of entries){const stack=document.createElement('span');stack.className='table-chip-stack';stack.title=p.name+' · '+money(p.bets[side]);
+   let remaining=p.bets[side],count=0;
+   for(const value of [2500,1000,500,100])while(remaining>=value){remaining-=value;const coin=document.createElement('span');coin.className='table-bet-chip denomination-'+value;coin.style.setProperty('--layer',count++);coin.textContent='$'+value/100;coin.setAttribute('aria-hidden','true');stack.append(coin)}
+   stack.style.setProperty('--depth',Math.min(count,8));const label=document.createElement('span');label.className='chip-owner';label.textContent=p.name+' '+money(p.bets[side]);stack.append(label);pile.append(stack);
+  }
+ }
+}
 function seats(){
  const box=$('#seats');
  for(let i=0;i<3;i++){
@@ -51,7 +64,7 @@ function receive(data){
  for(const k of ['P','B','T']){$('#bet'+k).textContent=me.bets[k]?money(me.bets[k]):'+';$('[data-bet="'+k+'"]').classList.toggle('placed',me.bets[k]>0);$('#'+k.toLowerCase()+'Count').textContent=data.history.filter(x=>x.winner===k).length}
  $('#rounds').textContent=data.roundNo+' ROUNDS';$('#roundId').textContent='ROUND '+String(data.phase==='waiting'?data.roundNo+1:data.roundNo||1).padStart(2,'0');$('#shoe').textContent=data.cardsLeft+' CARDS';
  $('#road').innerHTML=Array.from({length:48},(_,i)=>{const h=data.history.slice(-48)[i];return '<div>'+(h?'<span class="bead '+h.winner+'">'+h.winner+'</span>':'')+'</div>'}).join('');
- seats();
+ seats();tableChips();
  const event=data.event;if(event&&event.id!==lastEvent){const prior=lastEvent;lastEvent=event.id;if(prior&&Date.now()+clockOffset-event.at<3500&&['waiting','betting'].includes(data.phase)){
   if(event.type==='bet'){director.pose('betting',event.name+' 님 베팅',1000);director.pulse($('[data-bet="'+event.side+'"]'),'bet-landed');if(event.playerId!==data.me)playEffect('bet',event.chipSound)}
   else if(event.type==='clear'){director.pose('collecting','베팅 반환',1000);playEffect('cancel')}

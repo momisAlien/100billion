@@ -20,7 +20,7 @@ test('solo immediate start, hidden cards, banker commission, exactly one settlem
  R.advance(r,r.round.endAt);assert.equal(r.players[0].balance,10950);assert.equal(r.phase,'result');R.advance(r,r.round.endAt+1);assert.equal(r.players[0].balance,10950);assert.equal(r.history.length,1);
 });
 test('tie returns player and banker stakes, pays tie 8:1',()=>{
- const r=R.createRoom();join(r,'a');rig(r,[4,4,4,4]);for(const side of ['P','B','T'])R.action(r,'a',req('bet',{side,amount:100}),2000);R.action(r,'a',req('ready'),2100);R.advance(r,r.round.endAt);assert.equal(r.players[0].balance,10800);
+ const r=R.createRoom();join(r,'a');rig(r,[4,4,4,4]);for(const side of ['P','T'])R.action(r,'a',req('bet',{side,amount:100}),2000);R.action(r,'a',req('ready'),2100);R.advance(r,r.round.endAt);assert.equal(r.players[0].balance,10800);
 });
 test('mid-round join sees same round but cannot bet until next round',()=>{
  const r=R.createRoom();join(r,'a');R.action(r,'a',req('bet',{side:'P',amount:100}),2000);R.action(r,'a',req('ready'),2100);join(r,'b','B',2200);assert.equal(r.players[1].balance,10000);assert.equal(R.view(r,'a',2200).round.id,R.view(r,'b',2200).round.id);
@@ -57,4 +57,8 @@ test('chip sound is assigned once per player and shared in snapshots and bet eve
  const r=R.createRoom();join(r,'a');join(r,'b');const assigned=r.players[0].chipSound;assert.ok([0,1].includes(assigned));
  for(let i=0;i<3;i++){R.action(r,'a',req('bet',{side:'P',amount:100}),2000+i);assert.equal(r.event.chipSound,assigned);assert.equal(R.view(r,'b',2000+i).players[0].chipSound,assigned)}
  join(r,'a','again',2100);assert.equal(r.players[0].chipSound,assigned);
+});
+
+test('opposite P/B bets rejected, same side increments and clear permits switching',()=>{
+ for(const [first,other] of [['P','B'],['B','P']]){const r=R.createRoom();join(r,'a');R.action(r,'a',req('bet',{side:first,amount:500}),2000);assert.throws(()=>R.action(r,'a',req('bet',{side:other,amount:100}),2001),/동시에/);assert.equal(r.players[0].bets[other],0);R.action(r,'a',req('bet',{side:first,amount:500}),2002);assert.equal(r.players[0].bets[first],1000);R.action(r,'a',req('clear'),2003);R.action(r,'a',req('bet',{side:other,amount:100}),2004);assert.equal(r.players[0].bets[other],100)}
 });
